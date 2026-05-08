@@ -1,0 +1,15 @@
+pandas
+numpy
+seaborn
+matplotlib
+scikit-learn
+catboost
+xgboost
+Flask
+jupyter
+notebook
+imbalanced-learn
+python-dotenv
+dill
+joblib
+#-e .
