@@ -8,8 +8,10 @@ xgboost
 Flask
 jupyter
 notebook
+ipykernel
 imbalanced-learn
 python-dotenv
 dill
 joblib
+
 #-e .
