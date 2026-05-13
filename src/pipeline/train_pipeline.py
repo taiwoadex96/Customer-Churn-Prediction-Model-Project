@@ -27,7 +27,7 @@ class TrainPipeline:
 
         transformation = DataTransformation()
 
-        train_arr, test_arr, _ = (
+        train_arr, test_arr, preprocessor_path = (
             transformation.initiate_data_transformation(
                 train_data_path,
                 test_data_path
@@ -44,7 +44,8 @@ class TrainPipeline:
 
         trainer.initiate_model_trainer(
             train_arr,
-            test_arr
+            test_arr,
+            preprocessor_path
         )
 
         print("Model Training Completed")
