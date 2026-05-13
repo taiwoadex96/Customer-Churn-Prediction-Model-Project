@@ -1,15 +1,15 @@
-import os
 import sys
+import os
 
-import numpy as np
 import pandas as pd
+import numpy as np
 
 from dataclasses import dataclass
 
 from sklearn.compose import ColumnTransformer
-from sklearn.impute import SimpleImputer
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.impute import SimpleImputer
 
 from src.exception import CustomException
 from src.logger import logging
@@ -30,62 +30,77 @@ class DataTransformation:
 
     def get_data_transformer_object(self):
         """
-        This function creates preprocessing pipelines
+        This function is responsible for:
+        - Cleaning
+        - Encoding
+        - Creating preprocessing object
+
+        NOTE:
+        We DO NOT apply scaling here.
+        Scaling will be done separately inside model_trainer.py
+        only for Logistic Regression.
         """
 
         try:
+            logging.info("Creating preprocessing object")
 
-            numerical_columns = [
-                "SeniorCitizen",
-                "tenure",
-                "MonthlyCharges",
-                "TotalCharges"
+            # Binary categorical columns
+            binary_cols = [
+                'gender',
+                'Partner',
+                'Dependents',
+                'PhoneService',
+                'PaperlessBilling',
+                'Churn'
             ]
 
-            categorical_columns = [
-                "gender",
-                "Partner",
-                "Dependents",
-                "PhoneService",
-                "MultipleLines",
-                "InternetService",
-                "OnlineSecurity",
-                "OnlineBackup",
-                "DeviceProtection",
-                "TechSupport",
-                "StreamingTV",
-                "StreamingMovies",
-                "Contract",
-                "PaperlessBilling",
-                "PaymentMethod"
+            # Multi-category columns
+            multi_cols = [
+                'MultipleLines',
+                'InternetService',
+                'OnlineSecurity',
+                'OnlineBackup',
+                'DeviceProtection',
+                'TechSupport',
+                'StreamingTV',
+                'StreamingMovies',
+                'Contract',
+                'PaymentMethod'
             ]
 
-            # Numerical Pipeline
+            # Numerical columns
+            numerical_cols = [
+                'SeniorCitizen',
+                'tenure',
+                'MonthlyCharges',
+                'TotalCharges'
+            ]
+
+            # Numerical pipeline
             num_pipeline = Pipeline(
                 steps=[
-                    ("imputer", SimpleImputer(strategy="median")),
-                    ("scaler", StandardScaler())
+                    ("imputer", SimpleImputer(strategy="median"))
                 ]
             )
 
-            # Categorical Pipeline
-            cat_pipeline = Pipeline(
+            # Multi-category pipeline
+            multi_pipeline = Pipeline(
                 steps=[
                     ("imputer", SimpleImputer(strategy="most_frequent")),
-                    ("one_hot_encoder", OneHotEncoder(drop='first')),
-                    ("scaler", StandardScaler(with_mean=False))
+                    ("one_hot_encoder", OneHotEncoder(drop='first'))
                 ]
             )
 
-            logging.info("Numerical columns scaling completed")
-            logging.info("Categorical columns encoding completed")
-
+            # Column Transformer
             preprocessor = ColumnTransformer(
                 [
-                    ("num_pipeline", num_pipeline, numerical_columns),
-                    ("cat_pipeline", cat_pipeline, categorical_columns)
-                ]
+                    ("num_pipeline", num_pipeline, numerical_cols),
+                    ("multi_pipeline", multi_pipeline, multi_cols)
+                ],
+                remainder='passthrough'
             )
+
+            logging.info("Preprocessing object created successfully")
 
             return preprocessor
 
@@ -98,11 +113,11 @@ class DataTransformation:
             train_df = pd.read_csv(train_path)
             test_df = pd.read_csv(test_path)
 
-            logging.info("Read train and test data completed")
+            logging.info("Train and test data loaded successfully")
 
-            # =========================
+            # ==========================================
             # DATA CLEANING
-            # =========================
+            # ==========================================
 
             # Convert TotalCharges to numeric
             train_df["TotalCharges"] = pd.to_numeric(
@@ -115,30 +130,43 @@ class DataTransformation:
                 errors="coerce"
             )
 
-            # Drop null values
-            train_df.dropna(inplace=True)
-            test_df.dropna(inplace=True)
+            # Drop missing values
+            train_df = train_df.dropna()
+            test_df = test_df.dropna()
 
-            # Encode target column
-            train_df["Churn"] = train_df["Churn"].map({
-                "No": 0,
-                "Yes": 1
-            })
-
-            test_df["Churn"] = test_df["Churn"].map({
-                "No": 0,
-                "Yes": 1
-            })
+            # Drop customerID
+            train_df = train_df.drop(columns=['customerID'])
+            test_df = test_df.drop(columns=['customerID'])
 
             logging.info("Data cleaning completed")
 
-            preprocessing_obj = self.get_data_transformer_object()
-
             target_column_name = "Churn"
 
-            # =========================
-            # SPLIT FEATURES & TARGET
-            # =========================
+            # ==========================================
+            # LABEL ENCODING FOR BINARY COLUMNS
+            # ==========================================
+
+            binary_cols = [
+                col for col in train_df.columns
+                if train_df[col].nunique() == 2
+            ]
+
+            binary_mapping = {
+                'Yes': 1,
+                'No': 0,
+                'Male': 1,
+                'Female': 0
+            }
+
+            for col in binary_cols:
+                train_df[col] = train_df[col].replace(binary_mapping)
+                test_df[col] = test_df[col].replace(binary_mapping)
+
+            logging.info("Binary encoding completed")
+
+            # ==========================================
+            # SPLIT FEATURES AND TARGET
+            # ==========================================
 
             input_feature_train_df = train_df.drop(
                 columns=[target_column_name]
@@ -152,13 +180,13 @@ class DataTransformation:
 
             target_feature_test_df = test_df[target_column_name]
 
-            logging.info(
-                "Applying preprocessing object on training and testing datasets"
-            )
+            logging.info("Feature-target split completed")
 
-            # =========================
-            # FIT & TRANSFORM
-            # =========================
+            preprocessing_obj = self.get_data_transformer_object()
+
+            # ==========================================
+            # APPLY TRANSFORMATIONS
+            # ==========================================
 
             input_feature_train_arr = preprocessing_obj.fit_transform(
                 input_feature_train_df
@@ -168,9 +196,11 @@ class DataTransformation:
                 input_feature_test_df
             )
 
-            # =========================
+            logging.info("Preprocessing completed")
+
+            # ==========================================
             # COMBINE FEATURES + TARGET
-            # =========================
+            # ==========================================
 
             train_arr = np.c_[
                 input_feature_train_arr,
@@ -182,15 +212,15 @@ class DataTransformation:
                 np.array(target_feature_test_df)
             ]
 
-            logging.info("Preprocessing completed successfully")
+            logging.info("Train and test arrays created")
 
-            # Save preprocessor object
+            # Save preprocessing object
             save_object(
                 file_path=self.data_transformation_config.preprocessor_obj_file_path,
                 obj=preprocessing_obj
             )
 
-            logging.info("Preprocessor pickle file saved")
+            logging.info("Preprocessor saved successfully")
 
             return (
                 train_arr,
@@ -204,15 +234,18 @@ class DataTransformation:
 
 if __name__ == "__main__":
 
-    train_path = os.path.join("artifacts", "train.csv")
-    test_path = os.path.join("artifacts", "test.csv")
+    from src.components.data_ingestion import DataIngestion
+
+    ingestion = DataIngestion()
+
+    train_data, test_data = ingestion.initiate_data_ingestion()
 
     transformation = DataTransformation()
 
     train_arr, test_arr, preprocessor_path = (
         transformation.initiate_data_transformation(
-            train_path,
-            test_path
+            train_data,
+            test_data
         )
     )
 
