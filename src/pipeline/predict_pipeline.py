@@ -1,4 +1,3 @@
-import os
 import sys
 import pandas as pd
 
@@ -13,24 +12,20 @@ class PredictPipeline:
     def predict(self, features):
 
         try:
-            model_path = os.path.join(
-                "artifacts",
-                "model.pkl"
-            )
+            # Load preprocessor
+            preprocessor_path = "artifacts/preprocessor.pkl"
 
-            preprocessor_path = os.path.join(
-                "artifacts",
-                "preprocessor.pkl"
-            )
+            # Load model
+            model_path = "artifacts/model.pkl"
 
-            # Load objects
-            model = load_object(model_path)
             preprocessor = load_object(preprocessor_path)
 
-            # Transform input data
+            model = load_object(model_path)
+
+            # Transform data
             data_scaled = preprocessor.transform(features)
 
-            # Make prediction
+            # Prediction
             predictions = model.predict(data_scaled)
 
             return predictions
@@ -42,26 +37,25 @@ class PredictPipeline:
 class CustomData:
     def __init__(
         self,
-
-        gender: str,
-        SeniorCitizen: int,
-        Partner: str,
-        Dependents: str,
-        tenure: int,
-        PhoneService: str,
-        MultipleLines: str,
-        InternetService: str,
-        OnlineSecurity: str,
-        OnlineBackup: str,
-        DeviceProtection: str,
-        TechSupport: str,
-        StreamingTV: str,
-        StreamingMovies: str,
-        Contract: str,
-        PaperlessBilling: str,
-        PaymentMethod: str,
-        MonthlyCharges: float,
-        TotalCharges: float
+        gender,
+        SeniorCitizen,
+        Partner,
+        Dependents,
+        tenure,
+        PhoneService,
+        MultipleLines,
+        InternetService,
+        OnlineSecurity,
+        OnlineBackup,
+        DeviceProtection,
+        TechSupport,
+        StreamingTV,
+        StreamingMovies,
+        Contract,
+        PaperlessBilling,
+        PaymentMethod,
+        MonthlyCharges,
+        TotalCharges
     ):
 
         self.gender = gender
@@ -87,6 +81,7 @@ class CustomData:
     def get_data_as_dataframe(self):
 
         try:
+
             custom_data_input_dict = {
                 "gender": [self.gender],
                 "SeniorCitizen": [self.SeniorCitizen],

@@ -22,6 +22,7 @@ from sklearn.model_selection import GridSearchCV
 from sklearn.preprocessing import StandardScaler
 
 from imblearn.over_sampling import SMOTE
+from sklearn.pipeline import Pipeline
 
 from src.exception import CustomException
 from src.logger import logging
@@ -87,6 +88,7 @@ class ModelTrainer:
         try:
 
             logging.info("Starting Model Training")
+            preprocessor = load_object(preprocessor_path)
 
             # =====================================================
             # SPLIT FEATURES AND TARGET
@@ -285,9 +287,19 @@ class ModelTrainer:
             # SAVE MODEL
             # =====================================================
 
+            # Create final pipeline
+            final_pipeline = Pipeline([
+                ("preprocessor", preprocessor),
+                ("model", best_model)
+            ])
+
+            # Train final pipeline
+            final_pipeline.fit(X_train, y_train)
+
+            # Save full pipeline
             save_object(
                 file_path=self.model_trainer_config.trained_model_file_path,
-                obj=best_model
+                obj=final_pipeline
             )
 
             logging.info("Model Training Completed")
