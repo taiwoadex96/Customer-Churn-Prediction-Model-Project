@@ -5,7 +5,6 @@ import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-
 from dataclasses import dataclass
 
 from sklearn.linear_model import LogisticRegression
@@ -22,12 +21,15 @@ from sklearn.model_selection import GridSearchCV
 from sklearn.preprocessing import StandardScaler
 
 from imblearn.over_sampling import SMOTE
-from sklearn.pipeline import Pipeline
 
 from src.exception import CustomException
 from src.logger import logging
 from src.utils import save_object, load_object
 
+
+# =====================================================
+# CONFIGURATION
+# =====================================================
 
 @dataclass
 class ModelTrainerConfig:
@@ -37,12 +39,17 @@ class ModelTrainerConfig:
     )
 
 
+# =====================================================
+# MODEL TRAINER CLASS
+# =====================================================
+
 class ModelTrainer:
+
     def __init__(self):
         self.model_trainer_config = ModelTrainerConfig()
 
     # =====================================================
-    # MODEL EVALUATION FUNCTION
+    # EVALUATION FUNCTION
     # =====================================================
 
     def evaluate_model(
@@ -88,7 +95,6 @@ class ModelTrainer:
         try:
 
             logging.info("Starting Model Training")
-            preprocessor = load_object(preprocessor_path)
 
             # =====================================================
             # SPLIT FEATURES AND TARGET
@@ -101,41 +107,53 @@ class ModelTrainer:
                 test_array[:, -1]
             )
 
-            # Convert target labels to integer
+            # =====================================================
+            # CONVERT TARGET TO INTEGER
+            # =====================================================
+
             y_train = y_train.astype(int)
             y_test = y_test.astype(int)
+
+            # =====================================================
+            # LOAD PREPROCESSOR
+            # =====================================================
+
+            preprocessor = load_object(preprocessor_path)
 
             # =====================================================
             # LOGISTIC REGRESSION
             # =====================================================
 
+            scaler = StandardScaler()
+
+            X_train_scaled = scaler.fit_transform(X_train)
+            X_test_scaled = scaler.transform(X_test)
+
             smote = SMOTE(random_state=42)
 
-            # Apply SMOTE
-            X_train_resampled_lr, y_train_resampled_lr = (
+            X_train_resampled_scaled, y_train_resampled = (
                 smote.fit_resample(
-                    X_train,
+                    X_train_scaled,
                     y_train
                 )
             )
 
             logistic_model = LogisticRegression(
                 max_iter=5000,
-                solver='liblinear',
                 random_state=42
             )
 
             logistic_model.fit(
-                X_train_resampled_lr,
-                y_train_resampled_lr
+                X_train_resampled_scaled,
+                y_train_resampled
             )
 
             logistic_predictions = logistic_model.predict(
-                X_test
+                X_test_scaled
             )
 
             logistic_probabilities = logistic_model.predict_proba(
-                X_test
+                X_test_scaled
             )[:, 1]
 
             logistic_f1 = self.evaluate_model(
@@ -157,16 +175,18 @@ class ModelTrainer:
             )
 
             param_grid = {
-                'n_estimators': [100, 200],
-                'max_depth': [10, 20, None],
-                'min_samples_split': [2, 5]
+                "n_estimators": [100, 200],
+                "max_depth": [10, 20, None],
+                "min_samples_split": [2, 5]
             }
 
             random_forest = GridSearchCV(
-                RandomForestClassifier(random_state=42),
+                estimator=RandomForestClassifier(
+                    random_state=42
+                ),
                 param_grid=param_grid,
                 cv=3,
-                scoring='recall',
+                scoring="recall",
                 n_jobs=-1
             )
 
@@ -181,9 +201,9 @@ class ModelTrainer:
                 X_test
             )
 
-            random_forest_probabilities = best_rf.predict_proba(
-                X_test
-            )[:, 1]
+            random_forest_probabilities = (
+                best_rf.predict_proba(X_test)[:, 1]
+            )
 
             rf_f1 = self.evaluate_model(
                 y_test,
@@ -195,18 +215,14 @@ class ModelTrainer:
             print("\nBest RF Parameters:")
             print(random_forest.best_params_)
 
-            # ==========================================================
+            # =====================================================
             # FEATURE IMPORTANCE
-            # ==========================================================
+            # =====================================================
 
             print("\n" + "=" * 50)
             print("TOP 10 IMPORTANT FEATURES")
             print("=" * 50)
 
-            # Load preprocessor object
-            preprocessor = load_object(preprocessor_path)
-
-            # Get feature importances
             importances = best_rf.feature_importances_
 
             # Get transformed feature names
@@ -217,12 +233,18 @@ class ModelTrainer:
 
             for feature in feature_names:
 
-                # Remove pipeline prefixes
-                feature = feature.replace("num_pipeline__", "")
-                feature = feature.replace("multi_pipeline__", "")
-                feature = feature.replace("remainder__", "")
+                feature = feature.replace(
+                    "num_pipeline__", ""
+                )
 
-                # Make names cleaner
+                feature = feature.replace(
+                    "multi_pipeline__", ""
+                )
+
+                feature = feature.replace(
+                    "remainder__", ""
+                )
+
                 feature = feature.replace("_Yes", "")
                 feature = feature.replace("_No", "")
                 feature = feature.replace("_Male", "")
@@ -230,42 +252,50 @@ class ModelTrainer:
 
                 clean_feature_names.append(feature)
 
-            # Create dataframe
             feature_importance_df = pd.DataFrame({
                 "Feature": clean_feature_names,
                 "Importance": importances
             })
 
-            # Sort values
-            feature_importance_df = feature_importance_df.sort_values(
-                by="Importance",
-                ascending=False
-            ).head(10)
+            feature_importance_df = (
+                feature_importance_df
+                .sort_values(
+                    by="Importance",
+                    ascending=False
+                )
+                .head(10)
+            )
 
-            # Print result
             print(feature_importance_df)
 
-            # Plot
+            # =====================================================
+            # PLOT FEATURE IMPORTANCE
+            # =====================================================
+
             plt.figure(figsize=(10, 6))
 
             sns.barplot(
+                data=feature_importance_df,
                 x="Importance",
                 y="Feature",
                 hue="Feature",
-                data=feature_importance_df,
-                palette="viridis",
+                dodge=False,
                 legend=False
             )
 
-            plt.title("Top 10 Drivers of Customer Churn")
+            plt.title(
+                "Top 10 Drivers of Customer Churn"
+            )
+
             plt.xlabel("Importance Score")
             plt.ylabel("Features")
 
             plt.tight_layout()
+
             plt.show()
 
             # =====================================================
-            # BEST MODEL SELECTION
+            # SELECT BEST MODEL
             # =====================================================
 
             if logistic_f1 > rf_f1:
@@ -287,19 +317,9 @@ class ModelTrainer:
             # SAVE MODEL
             # =====================================================
 
-            # Create final pipeline
-            final_pipeline = Pipeline([
-                ("preprocessor", preprocessor),
-                ("model", best_model)
-            ])
-
-            # Train final pipeline
-            final_pipeline.fit(X_train, y_train)
-
-            # Save full pipeline
             save_object(
                 file_path=self.model_trainer_config.trained_model_file_path,
-                obj=final_pipeline
+                obj=best_model
             )
 
             logging.info("Model Training Completed")
@@ -311,22 +331,33 @@ class ModelTrainer:
 
 
 # =====================================================
-# RUN PIPELINE
+# RUN FULL PIPELINE
 # =====================================================
 
 if __name__ == "__main__":
 
-    from src.components.data_ingestion import DataIngestion
-    from src.components.data_transformation import DataTransformation
+    from src.components.data_ingestion import (
+        DataIngestion
+    )
 
-    # Data Ingestion
+    from src.components.data_transformation import (
+        DataTransformation
+    )
+
+    # =====================================================
+    # DATA INGESTION
+    # =====================================================
+
     ingestion = DataIngestion()
 
     train_data_path, test_data_path = (
         ingestion.initiate_data_ingestion()
     )
 
-    # Data Transformation
+    # =====================================================
+    # DATA TRANSFORMATION
+    # =====================================================
+
     transformation = DataTransformation()
 
     train_arr, test_arr, preprocessor_path = (
@@ -336,7 +367,10 @@ if __name__ == "__main__":
         )
     )
 
-    # Model Training
+    # =====================================================
+    # MODEL TRAINING
+    # =====================================================
+
     trainer = ModelTrainer()
 
     trainer.initiate_model_trainer(

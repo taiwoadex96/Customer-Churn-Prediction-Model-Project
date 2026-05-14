@@ -12,21 +12,12 @@ class PredictPipeline:
     def predict(self, features):
 
         try:
-            # Load preprocessor
-            preprocessor_path = "artifacts/preprocessor.pkl"
 
-            # Load model
             model_path = "artifacts/model.pkl"
-
-            preprocessor = load_object(preprocessor_path)
 
             model = load_object(model_path)
 
-            # Transform data
-            data_scaled = preprocessor.transform(features)
-
-            # Prediction
-            predictions = model.predict(data_scaled)
+            predictions = model.predict(features)
 
             return predictions
 
