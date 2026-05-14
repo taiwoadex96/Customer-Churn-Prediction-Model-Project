@@ -6,6 +6,7 @@ from src.utils import load_object
 
 
 class PredictPipeline:
+
     def __init__(self):
         pass
 
@@ -13,11 +14,37 @@ class PredictPipeline:
 
         try:
 
+            # =====================================================
+            # LOAD MODEL
+            # =====================================================
+
             model_path = "artifacts/model.pkl"
 
             model = load_object(model_path)
 
-            predictions = model.predict(features)
+            # =====================================================
+            # LOAD PREPROCESSOR
+            # =====================================================
+
+            preprocessor_path = "artifacts/preprocessor.pkl"
+
+            preprocessor = load_object(preprocessor_path)
+
+            # =====================================================
+            # TRANSFORM INPUT DATA
+            # =====================================================
+
+            data_transformed = preprocessor.transform(
+                features
+            )
+
+            # =====================================================
+            # PREDICTION
+            # =====================================================
+
+            predictions = model.predict(
+                data_transformed
+            )
 
             return predictions
 
@@ -25,28 +52,33 @@ class PredictPipeline:
             raise CustomException(e, sys)
 
 
+# =====================================================
+# CUSTOM INPUT CLASS
+# =====================================================
+
 class CustomData:
+
     def __init__(
         self,
-        gender,
-        SeniorCitizen,
-        Partner,
-        Dependents,
-        tenure,
-        PhoneService,
-        MultipleLines,
-        InternetService,
-        OnlineSecurity,
-        OnlineBackup,
-        DeviceProtection,
-        TechSupport,
-        StreamingTV,
-        StreamingMovies,
-        Contract,
-        PaperlessBilling,
-        PaymentMethod,
-        MonthlyCharges,
-        TotalCharges
+        gender: str,
+        SeniorCitizen: int,
+        Partner: str,
+        Dependents: str,
+        tenure: int,
+        PhoneService: str,
+        MultipleLines: str,
+        InternetService: str,
+        OnlineSecurity: str,
+        OnlineBackup: str,
+        DeviceProtection: str,
+        TechSupport: str,
+        StreamingTV: str,
+        StreamingMovies: str,
+        Contract: str,
+        PaperlessBilling: str,
+        PaymentMethod: str,
+        MonthlyCharges: float,
+        TotalCharges: float
     ):
 
         self.gender = gender
@@ -69,11 +101,16 @@ class CustomData:
         self.MonthlyCharges = MonthlyCharges
         self.TotalCharges = TotalCharges
 
+    # =====================================================
+    # CONVERT INPUT TO DATAFRAME
+    # =====================================================
+
     def get_data_as_dataframe(self):
 
         try:
 
             custom_data_input_dict = {
+
                 "gender": [self.gender],
                 "SeniorCitizen": [self.SeniorCitizen],
                 "Partner": [self.Partner],
@@ -93,6 +130,7 @@ class CustomData:
                 "PaymentMethod": [self.PaymentMethod],
                 "MonthlyCharges": [self.MonthlyCharges],
                 "TotalCharges": [self.TotalCharges]
+
             }
 
             return pd.DataFrame(custom_data_input_dict)
