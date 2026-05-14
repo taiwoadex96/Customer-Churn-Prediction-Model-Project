@@ -1,54 +1,69 @@
+import sys
+
+from src.exception import CustomException
+from src.logger import logging
+
 from src.components.data_ingestion import DataIngestion
 from src.components.data_transformation import DataTransformation
 from src.components.model_trainer import ModelTrainer
 
 
 class TrainPipeline:
+
     def __init__(self):
         pass
 
     def start_training_pipeline(self):
 
-        # ==============================
-        # DATA INGESTION
-        # ==============================
+        try:
 
-        ingestion = DataIngestion()
+            logging.info("Training Pipeline Started")
 
-        train_data_path, test_data_path = (
-            ingestion.initiate_data_ingestion()
-        )
+            # =====================================================
+            # DATA INGESTION
+            # =====================================================
 
-        print("Data Ingestion Completed")
+            ingestion = DataIngestion()
 
-        # ==============================
-        # DATA TRANSFORMATION
-        # ==============================
-
-        transformation = DataTransformation()
-
-        train_arr, test_arr, preprocessor_path = (
-            transformation.initiate_data_transformation(
-                train_data_path,
-                test_data_path
+            train_data_path, test_data_path = (
+                ingestion.initiate_data_ingestion()
             )
-        )
 
-        print("Data Transformation Completed")
+            print("Data Ingestion Completed")
 
-        # ==============================
-        # MODEL TRAINING
-        # ==============================
+            # =====================================================
+            # DATA TRANSFORMATION
+            # =====================================================
 
-        trainer = ModelTrainer()
+            transformation = DataTransformation()
 
-        trainer.initiate_model_trainer(
-            train_arr,
-            test_arr,
-            preprocessor_path
-        )
+            train_arr, test_arr, preprocessor_path = (
+                transformation.initiate_data_transformation(
+                    train_data_path,
+                    test_data_path
+                )
+            )
 
-        print("Model Training Completed")
+            print("Data Transformation Completed")
+
+            # =====================================================
+            # MODEL TRAINING
+            # =====================================================
+
+            trainer = ModelTrainer()
+
+            trainer.initiate_model_trainer(
+                train_arr,
+                test_arr,
+                preprocessor_path
+            )
+
+            print("Model Training Completed")
+
+            logging.info("Training Pipeline Completed")
+
+        except Exception as e:
+            raise CustomException(e, sys)
 
 
 if __name__ == "__main__":
