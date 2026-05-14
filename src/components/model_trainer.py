@@ -107,36 +107,33 @@ class ModelTrainer:
             # LOGISTIC REGRESSION
             # =====================================================
 
-            scaler = StandardScaler()
-
-            X_train_scaled = scaler.fit_transform(X_train)
-            X_test_scaled = scaler.transform(X_test)
-
             smote = SMOTE(random_state=42)
 
-            X_train_resampled_scaled, y_train_resampled = (
+            # Apply SMOTE
+            X_train_resampled_lr, y_train_resampled_lr = (
                 smote.fit_resample(
-                    X_train_scaled,
+                    X_train,
                     y_train
                 )
             )
 
             logistic_model = LogisticRegression(
-                max_iter=1000,
+                max_iter=5000,
+                solver='liblinear',
                 random_state=42
             )
 
             logistic_model.fit(
-                X_train_resampled_scaled,
-                y_train_resampled
+                X_train_resampled_lr,
+                y_train_resampled_lr
             )
 
             logistic_predictions = logistic_model.predict(
-                X_test_scaled
+                X_test
             )
 
             logistic_probabilities = logistic_model.predict_proba(
-                X_test_scaled
+                X_test
             )[:, 1]
 
             logistic_f1 = self.evaluate_model(
