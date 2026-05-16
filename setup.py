@@ -4,9 +4,7 @@ from typing import List
 HYPEN_E_DOT = '-e .'
 
 def get_requirements(file_path:str)->List[str]:
-    '''
-    This function returns a list of requirements from the requirements.txt file.
-    '''
+    
     requirements=[]
 
     with open(file_path) as file_obj:
