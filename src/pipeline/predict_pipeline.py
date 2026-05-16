@@ -1,3 +1,4 @@
+import os
 import sys
 import pandas as pd
 
@@ -6,7 +7,6 @@ from src.utils import load_object
 
 
 class PredictPipeline:
-
     def __init__(self):
         pass
 
@@ -14,37 +14,34 @@ class PredictPipeline:
 
         try:
 
-            # =====================================================
+            # ==========================================
             # LOAD MODEL
-            # =====================================================
+            # ==========================================
 
-            model_path = "artifacts/model.pkl"
+            model_path = os.path.join(
+                "artifacts",
+                "model.pkl"
+            )
+
+            preprocessor_path = os.path.join(
+                "artifacts",
+                "preprocessor.pkl"
+            )
 
             model = load_object(model_path)
-
-            # =====================================================
-            # LOAD PREPROCESSOR
-            # =====================================================
-
-            preprocessor_path = "artifacts/preprocessor.pkl"
-
             preprocessor = load_object(preprocessor_path)
 
-            # =====================================================
+            # ==========================================
             # TRANSFORM INPUT DATA
-            # =====================================================
+            # ==========================================
 
-            data_transformed = preprocessor.transform(
-                features
-            )
+            data_scaled = preprocessor.transform(features)
 
-            # =====================================================
-            # PREDICTION
-            # =====================================================
+            # ==========================================
+            # MAKE PREDICTION
+            # ==========================================
 
-            predictions = model.predict(
-                data_transformed
-            )
+            predictions = model.predict(data_scaled)
 
             return predictions
 
@@ -53,11 +50,10 @@ class PredictPipeline:
 
 
 # =====================================================
-# CUSTOM INPUT CLASS
+# CUSTOM DATA CLASS
 # =====================================================
 
 class CustomData:
-
     def __init__(
         self,
         gender: str,
@@ -101,9 +97,9 @@ class CustomData:
         self.MonthlyCharges = MonthlyCharges
         self.TotalCharges = TotalCharges
 
-    # =====================================================
+    # ==========================================
     # CONVERT INPUT TO DATAFRAME
-    # =====================================================
+    # ==========================================
 
     def get_data_as_dataframe(self):
 

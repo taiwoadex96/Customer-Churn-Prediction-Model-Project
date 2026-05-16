@@ -317,10 +317,28 @@ class ModelTrainer:
             # SAVE MODEL
             # =====================================================
 
+            if best_model_name == "Logistic Regression":
+
+                final_model = {
+                    "model": logistic_model,
+                    "scaler": scaler
+                }
+
+            else:
+
+                final_model = {
+                    "model": best_rf,
+                    "scaler": None
+                }
+
+            os.makedirs("artifacts", exist_ok=True)
+
             save_object(
                 file_path=self.model_trainer_config.trained_model_file_path,
                 obj=best_model
             )
+
+            print("\nModel saved successfully!")
 
             logging.info("Model Training Completed")
 

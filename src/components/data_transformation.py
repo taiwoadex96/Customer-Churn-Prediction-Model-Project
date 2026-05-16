@@ -1,15 +1,17 @@
-import sys
 import os
-
-import pandas as pd
+import sys
 import numpy as np
+import pandas as pd
 
 from dataclasses import dataclass
 
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import OneHotEncoder
 from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import (
+    OneHotEncoder,
+    StandardScaler
+)
 
 from src.exception import CustomException
 from src.logger import logging
@@ -19,234 +21,325 @@ from src.utils import save_object
 @dataclass
 class DataTransformationConfig:
     preprocessor_obj_file_path = os.path.join(
-        'artifacts',
-        'preprocessor.pkl'
+        "artifacts",
+        "preprocessor.pkl"
     )
 
 
 class DataTransformation:
     def __init__(self):
-        self.data_transformation_config = DataTransformationConfig()
+        self.data_transformation_config = (
+            DataTransformationConfig()
+        )
+
+    # =====================================================
+    # CREATE PREPROCESSOR
+    # =====================================================
 
     def get_data_transformer_object(self):
-        """
-        This function is responsible for:
-        - Cleaning
-        - Encoding
-        - Creating preprocessing object
-
-        NOTE:
-        We DO NOT apply scaling here.
-        Scaling will be done separately inside model_trainer.py
-        only for Logistic Regression.
-        """
 
         try:
-            logging.info("Creating preprocessing object")
 
-            # Binary categorical columns
-            binary_cols = [
-                'gender',
-                'Partner',
-                'Dependents',
-                'PhoneService',
-                'PaperlessBilling',
-                'Churn'
+            logging.info(
+                "Creating preprocessing pipelines"
+            )
+
+            # =====================================================
+            # NUMERICAL COLUMNS
+            # =====================================================
+
+            numerical_columns = [
+                "SeniorCitizen",
+                "tenure",
+                "MonthlyCharges",
+                "TotalCharges"
             ]
 
-            # Multi-category columns
-            multi_cols = [
-                'MultipleLines',
-                'InternetService',
-                'OnlineSecurity',
-                'OnlineBackup',
-                'DeviceProtection',
-                'TechSupport',
-                'StreamingTV',
-                'StreamingMovies',
-                'Contract',
-                'PaymentMethod'
+            # =====================================================
+            # CATEGORICAL COLUMNS
+            # =====================================================
+
+            categorical_columns = [
+                "gender",
+                "Partner",
+                "Dependents",
+                "PhoneService",
+                "MultipleLines",
+                "InternetService",
+                "OnlineSecurity",
+                "OnlineBackup",
+                "DeviceProtection",
+                "TechSupport",
+                "StreamingTV",
+                "StreamingMovies",
+                "Contract",
+                "PaperlessBilling",
+                "PaymentMethod"
             ]
 
-            # Numerical columns
-            numerical_cols = [
-                'SeniorCitizen',
-                'tenure',
-                'MonthlyCharges',
-                'TotalCharges'
-            ]
+            # =====================================================
+            # NUMERICAL PIPELINE
+            # =====================================================
 
-            # Numerical pipeline
             num_pipeline = Pipeline(
                 steps=[
-                    ("imputer", SimpleImputer(strategy="median"))
+                    (
+                        "imputer",
+                        SimpleImputer(strategy="median")
+                    ),
+
+                    (
+                        "scaler",
+                        StandardScaler()
+                    )
                 ]
             )
 
-            # Multi-category pipeline
-            multi_pipeline = Pipeline(
+            # =====================================================
+            # CATEGORICAL PIPELINE
+            # =====================================================
+
+            cat_pipeline = Pipeline(
                 steps=[
-                    ("imputer", SimpleImputer(strategy="most_frequent")),
-                    ("one_hot_encoder", OneHotEncoder(drop='first'))
+                    (
+                        "imputer",
+                        SimpleImputer(
+                            strategy="most_frequent"
+                        )
+                    ),
+
+                    (
+                        "one_hot_encoder",
+                        OneHotEncoder(
+                            handle_unknown="ignore",
+                            sparse_output=False
+                        )
+                    )
                 ]
             )
 
-            # Column Transformer
-            preprocessor = ColumnTransformer(
-                [
-                    ("num_pipeline", num_pipeline, numerical_cols),
-                    ("multi_pipeline", multi_pipeline, multi_cols)
-                ],
-                remainder='passthrough'
-            )
+            # =====================================================
+            # COLUMN TRANSFORMER
+            # =====================================================
 
-            logging.info("Preprocessing object created successfully")
+            preprocessor = ColumnTransformer(
+                transformers=[
+
+                    (
+                        "num_pipeline",
+                        num_pipeline,
+                        numerical_columns
+                    ),
+
+                    (
+                        "cat_pipeline",
+                        cat_pipeline,
+                        categorical_columns
+                    )
+
+                ]
+            )
 
             return preprocessor
 
         except Exception as e:
             raise CustomException(e, sys)
 
-    def initiate_data_transformation(self, train_path, test_path):
+    # =====================================================
+    # MAIN TRANSFORMATION FUNCTION
+    # =====================================================
+
+    def initiate_data_transformation(
+        self,
+        train_path,
+        test_path
+    ):
 
         try:
+
+            logging.info(
+                "Reading train and test datasets"
+            )
+
             train_df = pd.read_csv(train_path)
             test_df = pd.read_csv(test_path)
 
-            logging.info("Train and test data loaded successfully")
+            logging.info(
+                "Obtaining preprocessing object"
+            )
 
-            # ==========================================
-            # DATA CLEANING
-            # ==========================================
+            preprocessing_obj = (
+                self.get_data_transformer_object()
+            )
 
-            # Convert TotalCharges to numeric
+            # =====================================================
+            # CLEAN TotalCharges COLUMN
+            # =====================================================
+
+            train_df["TotalCharges"] = (
+                train_df["TotalCharges"]
+                .replace(" ", np.nan)
+            )
+
+            test_df["TotalCharges"] = (
+                test_df["TotalCharges"]
+                .replace(" ", np.nan)
+            )
+
             train_df["TotalCharges"] = pd.to_numeric(
-                train_df["TotalCharges"],
-                errors="coerce"
+                train_df["TotalCharges"]
             )
 
             test_df["TotalCharges"] = pd.to_numeric(
-                test_df["TotalCharges"],
-                errors="coerce"
+                test_df["TotalCharges"]
             )
-
-            # Drop missing values
-            train_df = train_df.dropna()
-            test_df = test_df.dropna()
-
-            # Drop customerID
-            train_df = train_df.drop(columns=['customerID'])
-            test_df = test_df.drop(columns=['customerID'])
-
-            logging.info("Data cleaning completed")
+            # =====================================================
+            # TARGET COLUMN
+            # =====================================================
 
             target_column_name = "Churn"
 
-            # ==========================================
-            # LABEL ENCODING FOR BINARY COLUMNS
-            # ==========================================
+            # =====================================================
+            # CONVERT TARGET TO NUMERIC
+            # =====================================================
 
-            binary_cols = [
-                col for col in train_df.columns
-                if train_df[col].nunique() == 2
-            ]
+            train_df[target_column_name] = (
+                train_df[target_column_name]
+                .map({
+                    "Yes": 1,
+                    "No": 0
+                })
+            )
 
-            binary_mapping = {
-                'Yes': 1,
-                'No': 0,
-                'Male': 1,
-                'Female': 0
-            }
+            test_df[target_column_name] = (
+                test_df[target_column_name]
+                .map({
+                    "Yes": 1,
+                    "No": 0
+                })
+            )
 
-            for col in binary_cols:
-                train_df[col] = train_df[col].replace(binary_mapping)
-                test_df[col] = test_df[col].replace(binary_mapping)
-
-            logging.info("Binary encoding completed")
-
-            # ==========================================
-            # SPLIT FEATURES AND TARGET
-            # ==========================================
+            # =====================================================
+            # SPLIT INPUT AND TARGET
+            # =====================================================
 
             input_feature_train_df = train_df.drop(
                 columns=[target_column_name]
             )
 
-            target_feature_train_df = train_df[target_column_name]
+            target_feature_train_df = (
+                train_df[target_column_name]
+            )
 
             input_feature_test_df = test_df.drop(
-                columns=[target_column_name]
+                columns=[target_column_name],
             )
 
-            target_feature_test_df = test_df[target_column_name]
-
-            logging.info("Feature-target split completed")
-
-            preprocessing_obj = self.get_data_transformer_object()
-
-            # ==========================================
-            # APPLY TRANSFORMATIONS
-            # ==========================================
-
-            input_feature_train_arr = preprocessing_obj.fit_transform(
-                input_feature_train_df
+            target_feature_test_df = (
+                test_df[target_column_name]
             )
 
-            input_feature_test_arr = preprocessing_obj.transform(
-                input_feature_test_df
+            logging.info(
+                "Applying preprocessing object"
             )
 
-            logging.info("Preprocessing completed")
+            # =====================================================
+            # FIT + TRANSFORM TRAIN DATA
+            # =====================================================
 
-            # ==========================================
+            input_feature_train_arr = (
+                preprocessing_obj.fit_transform(
+                    input_feature_train_df
+                )
+            )
+
+            # =====================================================
+            # TRANSFORM TEST DATA
+            # =====================================================
+
+            input_feature_test_arr = (
+                preprocessing_obj.transform(
+                    input_feature_test_df
+                )
+            )
+
+            # =====================================================
             # COMBINE FEATURES + TARGET
-            # ==========================================
+            # =====================================================
 
             train_arr = np.c_[
+
                 input_feature_train_arr,
                 np.array(target_feature_train_df)
+
             ]
 
             test_arr = np.c_[
+
                 input_feature_test_arr,
                 np.array(target_feature_test_df)
+
             ]
 
-            logging.info("Train and test arrays created")
-
-            # Save preprocessing object
-            save_object(
-                file_path=self.data_transformation_config.preprocessor_obj_file_path,
-                obj=preprocessing_obj
+            logging.info(
+                "Saving preprocessing object"
             )
 
-            logging.info("Preprocessor saved successfully")
+            save_object(
+
+                file_path=(
+                    self.data_transformation_config
+                    .preprocessor_obj_file_path
+                ),
+
+                obj=preprocessing_obj
+
+            )
+
+            logging.info(
+                "Data Transformation Completed"
+            )
 
             return (
+
                 train_arr,
                 test_arr,
-                self.data_transformation_config.preprocessor_obj_file_path
+                self.data_transformation_config
+                .preprocessor_obj_file_path
+
             )
 
         except Exception as e:
             raise CustomException(e, sys)
 
 
+# =====================================================
+# TEST TRANSFORMATION
+# =====================================================
+
 if __name__ == "__main__":
 
-    from src.components.data_ingestion import DataIngestion
+    from src.components.data_ingestion import (
+        DataIngestion
+    )
 
     ingestion = DataIngestion()
 
-    train_data, test_data = ingestion.initiate_data_ingestion()
+    train_path, test_path = (
+        ingestion.initiate_data_ingestion()
+    )
 
     transformation = DataTransformation()
 
     train_arr, test_arr, preprocessor_path = (
         transformation.initiate_data_transformation(
-            train_data,
-            test_data
+            train_path,
+            test_path
         )
     )
 
-    print("Data transformation completed successfully")
+    print("Train Array Shape:", train_arr.shape)
+    print("Test Array Shape:", test_arr.shape)
+
+    print("\nPreprocessor Saved At:")
+    print(preprocessor_path)
