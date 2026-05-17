@@ -59,3 +59,19 @@ if __name__ == "__main__":
     train_arr, test_arr, preprocessor_path = data_transformation.initiate_data_transformation(train_data, test_data)
     
     print(f"Data Transformation Complete!\nPreprocessor Saved At: {preprocessor_path}\nProcessed Training Array Shape: {train_arr.shape}")
+
+    if __name__ == "__main__":
+        # 1. Ingest Data
+        obj = DataIngestion()
+        train_data, test_data = obj.initiate_data_ingestion()
+        
+        # 2. Transform Data
+        from src.components.data_transformation import DataTransformation
+        data_transformation = DataTransformation()
+        train_arr, test_arr, preprocessor_path = data_transformation.initiate_data_transformation(train_data, test_data)
+        
+        # 3. Train & Evaluate Models (Triggering Step 7)
+        from src.components.model_trainer import ModelTrainer
+        model_trainer = ModelTrainer()
+        final_score = model_trainer.initiate_model_trainer(train_arr, test_arr)
+        print("\n🎉 Modular Machine Learning Pipeline Executed Flawlessly!")

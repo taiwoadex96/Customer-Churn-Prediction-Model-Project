@@ -1,82 +1,42 @@
-import os
 import sys
+import os
 import pandas as pd
-
 from src.exception import CustomException
-from src.utils import load_object
-
+from src.logger import logging
+import joblib
 
 class PredictPipeline:
     def __init__(self):
         pass
 
     def predict(self, features):
-
+        """Loads serialized pipeline assets to predict on unseen web forms."""
         try:
-
-            # ==========================================
-            # LOAD MODEL
-            # ==========================================
-
-            model_path = os.path.join(
-                "artifacts",
-                "model.pkl"
-            )
-
-            preprocessor_path = os.path.join(
-                "artifacts",
-                "preprocessor.pkl"
-            )
-
-            model = load_object(model_path)
-            preprocessor = load_object(preprocessor_path)
-
-            # ==========================================
-            # TRANSFORM INPUT DATA
-            # ==========================================
-
+            model_path = os.path.join("artifacts", "model.pkl")
+            preprocessor_path = os.path.join("artifacts", "preprocessor.pkl")
+            
+            logging.info("Loading production Preprocessor and Model weights")
+            model = joblib.load(model_path)
+            preprocessor = joblib.load(preprocessor_path)
+            
+            logging.info("Transforming incoming feature data matrices")
             data_scaled = preprocessor.transform(features)
-
-            # ==========================================
-            # MAKE PREDICTION
-            # ==========================================
-
-            predictions = model.predict(data_scaled)
-
-            return predictions
-
+            
+            logging.info("Executing forward classification pass")
+            preds = model.predict(data_scaled)
+            return preds
+            
         except Exception as e:
             raise CustomException(e, sys)
 
-
-# =====================================================
-# CUSTOM DATA CLASS
-# =====================================================
-
 class CustomData:
-    def __init__(
-        self,
-        gender: str,
-        SeniorCitizen: int,
-        Partner: str,
-        Dependents: str,
-        tenure: int,
-        PhoneService: str,
-        MultipleLines: str,
-        InternetService: str,
-        OnlineSecurity: str,
-        OnlineBackup: str,
-        DeviceProtection: str,
-        TechSupport: str,
-        StreamingTV: str,
-        StreamingMovies: str,
-        Contract: str,
-        PaperlessBilling: str,
-        PaymentMethod: str,
-        MonthlyCharges: float,
-        TotalCharges: float
-    ):
-
+    """Maps HTML web input elements into a structured Pandas DataFrame."""
+    def __init__(self, gender: str, SeniorCitizen: int, Partner: str, Dependents: str,
+                 tenure: int, PhoneService: str, MultipleLines: str, InternetService: str,
+                 OnlineSecurity: str, OnlineBackup: str, DeviceProtection: str, TechSupport: str,
+                 StreamingTV: str, StreamingMovies: str, Contract: str, PaperlessBilling: str,
+                 PaymentMethod: str, MonthlyCharges: float, TotalCharges: float):
+        
         self.gender = gender
         self.SeniorCitizen = SeniorCitizen
         self.Partner = Partner
@@ -97,16 +57,9 @@ class CustomData:
         self.MonthlyCharges = MonthlyCharges
         self.TotalCharges = TotalCharges
 
-    # ==========================================
-    # CONVERT INPUT TO DATAFRAME
-    # ==========================================
-
-    def get_data_as_dataframe(self):
-
+    def get_data_as_data_frame(self) -> pd.DataFrame:
         try:
-
             custom_data_input_dict = {
-
                 "gender": [self.gender],
                 "SeniorCitizen": [self.SeniorCitizen],
                 "Partner": [self.Partner],
@@ -126,10 +79,11 @@ class CustomData:
                 "PaymentMethod": [self.PaymentMethod],
                 "MonthlyCharges": [self.MonthlyCharges],
                 "TotalCharges": [self.TotalCharges]
-
             }
-
-            return pd.DataFrame(custom_data_input_dict)
-
+            
+            df = pd.DataFrame(custom_data_input_dict)
+            logging.info("Web application form mapped to DataFrame successfully")
+            return df
+            
         except Exception as e:
             raise CustomException(e, sys)

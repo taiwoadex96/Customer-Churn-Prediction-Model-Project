@@ -1,6 +1,7 @@
 import os
 import sys
 import joblib
+from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import recall_score
 
 from src.exception import CustomException
