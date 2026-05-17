@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Telco Customer Churn Predictor</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f6f9; margin: 0; padding: 20px; }
+        .container { max-width: 700px; background: white; margin: 0 auto; padding: 30px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h2 { text-align: center; color: #333; margin-bottom: 20px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; font-weight: bold; margin-bottom: 5px; color: #555; }
+        select, input[type="number"] { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        input[type="submit"] { width: 100%; background-color: #0056b3; color: white; padding: 12px; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; font-weight: bold; margin-top: 15px; }
+        input[type="submit"]:hover { background-color: #004085; }
+        .result { margin-top: 25px; padding: 15px; border-radius: 4px; text-align: center; font-size: 18px; font-weight: bold; }
+        .churn { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .stay { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>📞 Telco Customer Churn Risk Evaluator</h2>
+    
+    <form action="/predictdata" method="POST">
+        <div class="form-group">
+            <label>Gender</label>
+            <select name="gender" required>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Senior Citizen Status</label>
+            <select name="SeniorCitizen" required>
+                <option value="0">No (Younger)</option>
+                <option value="1">Yes (Senior)</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Has Partner?</label>
+            <select name="Partner" required>
+                <option value="Yes">Yes</option>
+                <option value="No">No</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Has Dependents?</label>
+            <select name="Dependents" required>
+                <option value="No">No</option>
+                <option value="Yes">Yes</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Account Tenure (Months)</label>
+            <input type="number" name="tenure" min="0" max="100" placeholder="e.g. 12" required>
+        </div>
+        <div class="form-group">
+            <label>Phone Service Subscribed?</label>
+            <select name="PhoneService" required>
+                <option value="Yes">Yes</option>
+                <option value="No">No</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Multiple Lines?</label>
+            <select name="MultipleLines" required>
+                <option value="No">No</option>
+                <option value="Yes">Yes</option>
+                <option value="No phone service">No phone service</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Internet Service Provider Type</label>
+            <select name="InternetService" required>
+                <option value="Fiber optic">Fiber optic</option>
+                <option value="DSL">DSL</option>
+                <option value="No">No Internet Service</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Online Security Extra Support?</label>
+            <select name="OnlineSecurity" required>
+                <option value="No">No</option>
+                <option value="Yes">Yes</option>
+                <option value="No internet service">No internet service</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Online Backup Feature?</label>
+            <select name="OnlineBackup" required>
+                <option value="No">No</option>
+                <option value="Yes">Yes</option>
+                <option value="No internet service">No internet service</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Device Protection Plan?</label>
+            <select name="DeviceProtection" required>
+                <option value="No">No</option>
+                <option value="Yes">Yes</option>
+                <option value="No internet service">No internet service</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Tech Support Feature?</label>
+            <select name="TechSupport" required>
+                <option value="No">No</option>
+                <option value="Yes">Yes</option>
+                <option value="No internet service">No internet service</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Streaming TV Plan?</label>
+            <select name="StreamingTV" required>
+                <option value="No">No</option>
+                <option value="Yes">Yes</option>
+                <option value="No internet service">No internet service</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Streaming Movies Plan?</label>
+            <select name="StreamingMovies" required>
+                <option value="No">No</option>
+                <option value="Yes">Yes</option>
+                <option value="No internet service">No internet service</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Contract Agreement Terms</label>
+            <select name="Contract" required>
+                <option value="Month-to-month">Month-to-month</option>
+                <option value="One year">One year</option>
+                <option value="Two year">Two year</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Paperless Billing Enabled?</label>
+            <select name="PaperlessBilling" required>
+                <option value="Yes">Yes</option>
+                <option value="No">No</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Payment Selection Options</label>
+            <select name="PaymentMethod" required>
+                <option value="Electronic check">Electronic check</option>
+                <option value="Mailed check">Mailed check</option>
+                <option value="Bank transfer (automatic)">Bank transfer (automatic)</option>
+                <option value="Credit card (automatic)">Credit card (automatic)</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Current Monthly Charges ($)</label>
+            <input type="number" step="0.01" name="MonthlyCharges" placeholder="e.g. 64.85" required>
+        </div>
+        <div class="form-group">
+            <label>Accumulated Total Charges ($)</label>
+            <input type="number" step="0.01" name="TotalCharges" placeholder="e.g. 1250.40" required>
+        </div>
+
+        <input type="submit" value="Run Churn Prediction Risk Assessment">
+    </form>
+
+    {% if results %}
+        {% if results == "⚠️ High Risk! This client is highly likely to CHURN." %}
+            <div class="result churn">{{ results }}</div>
+        {% else %}
+            <div class="result stay">{{ results }}</div>
+        {% endif %}
+    {% endif %}
+</div>
+
+</body>
+</html>
