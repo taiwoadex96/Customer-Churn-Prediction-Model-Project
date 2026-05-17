@@ -23,17 +23,20 @@ class DataTransformation:
     def __init__(self):
         self.data_transformation_config = DataTransformationConfig()
 
-    def get_data_transformer_object(self, df):
-        """Creates and returns a ColumnTransformer based on dataframe columns."""
+    def get_data_transformer_object(self):
+        """Creates and returns a ColumnTransformer with explicit feature definitions."""
         try:
-            logging.info("Categorizing numerical and categorical columns for pipeline assembly")
+            logging.info("Defining explicit numerical and categorical columns for the pipeline")
             
-            # Exclude our target variable 'Churn'
-            columns_to_process = [col for col in df.columns if col != 'Churn']
+            # Explicitly define features based on the raw dataset structure
+            num_features = ['tenure', 'MonthlyCharges', 'TotalCharges']
             
-            # Identify numerical and categorical columns dynamically
-            num_features = [col for col in columns_to_process if df[col].dtype != 'O']
-            cat_features = [col for col in columns_to_process if df[col].dtype == 'O']
+            cat_features = [
+                'gender', 'SeniorCitizen', 'Partner', 'Dependents', 'PhoneService', 
+                'MultipleLines', 'InternetService', 'OnlineSecurity', 'OnlineBackup', 
+                'DeviceProtection', 'TechSupport', 'StreamingTV', 'StreamingMovies', 
+                'Contract', 'PaperlessBilling', 'PaymentMethod'
+            ]
 
             logging.info(f"Numerical Columns: {num_features}")
             logging.info(f"Categorical Columns: {cat_features}")
@@ -50,7 +53,7 @@ class DataTransformation:
             cat_pipeline = Pipeline(
                 steps=[
                     ("imputer", SimpleImputer(strategy="most_frequent")),
-                    ("one_hot_encoder", OneHotEncoder(drop='first', handle_unknown='ignore'))
+                    ("one_hot_encoder", OneHotEncoder(drop='first', handle_unknown='ignore', sparse_output=False))
                 ]
             )
 
@@ -66,6 +69,8 @@ class DataTransformation:
 
         except Exception as e:
             raise CustomException(e, sys)
+           
+        
 
     def initiate_data_transformation(self, train_path, test_path):
         """Performs data cleaning, transformation, and applies SMOTE."""
@@ -74,24 +79,23 @@ class DataTransformation:
             test_df = pd.read_csv(test_path)
             logging.info("Read train and test data completed within transformation component")
 
-            # Custom Cleaning step matching our notebook discovery
             logging.info("Applying custom numeric conversion for TotalCharges")
             for dataset in [train_df, test_df]:
+                # Force conversion and clean structural spaces
                 dataset['TotalCharges'] = pd.to_numeric(dataset['TotalCharges'], errors='coerce')
-                # Drop rows where TotalCharges became null during conversion
                 dataset.dropna(subset=['TotalCharges'], inplace=True)
                 if 'customerID' in dataset.columns:
                     dataset.drop('customerID', axis=1, inplace=True)
 
             # Separate Features and Target
-            input_feature_train_df = train_df.drop(columns=['Churn'], axis=1)
+            input_feature_train_df = train_df.drop(columns=['Churn'])
             target_feature_train_df = train_df['Churn'].map({'No': 0, 'Yes': 1})
 
-            input_feature_test_df = test_df.drop(columns=['Churn'], axis=1)
+            input_feature_test_df = test_df.drop(columns=['Churn'])
             target_feature_test_df = test_df['Churn'].map({'No': 0, 'Yes': 1})
 
             logging.info("Obtaining preprocessing object pipeline")
-            preprocessing_obj = self.get_data_transformer_object(input_feature_train_df)
+            preprocessing_obj = self.get_data_transformer_object()
 
             # Fit and transform the data
             logging.info("Applying preprocessing pipeline to train and test feature matrices")

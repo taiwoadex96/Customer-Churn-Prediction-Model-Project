@@ -49,6 +49,13 @@ class DataIngestion:
             raise CustomException(e, sys)
 
 if __name__ == "__main__":
+    # Ingest Data
     obj = DataIngestion()
     train_data, test_data = obj.initiate_data_ingestion()
-    print(f"Data Ingestion Complete!\nTrain Path: {train_data}\nTest Path: {test_data}")
+    
+    # Transform Data (Triggering data_transformation)
+    from src.components.data_transformation import DataTransformation
+    data_transformation = DataTransformation()
+    train_arr, test_arr, preprocessor_path = data_transformation.initiate_data_transformation(train_data, test_data)
+    
+    print(f"Data Transformation Complete!\nPreprocessor Saved At: {preprocessor_path}\nProcessed Training Array Shape: {train_arr.shape}")
