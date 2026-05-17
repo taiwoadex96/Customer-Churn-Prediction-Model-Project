@@ -219,3 +219,26 @@ __marimo__/
 .streamlit/secrets.toml
 # ML project artifacts
 artifacts/
+
+# Virtual Environment
+venv/
+.venv/
+env/
+
+# Python caching mechanisms
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Dynamically generated runtime logs
+logs/
+
+# Model assets (Keep empty configurations on Git, track weights locally or via DVC)
+artifacts/*.pkl
+artifacts/train.csv
+artifacts/test.csv
+artifacts/raw.csv
+
+# Operating System files
+.DS_Store
+Thumbs.db
