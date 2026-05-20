@@ -3,7 +3,7 @@
 An end-to-end Machine Learning pipeline and production web application built to predict subscriber attrition with high sensitivity. This architecture moves beyond isolated, experimental Jupyter notebooks by embedding model training and inference into a decoupled, fully modular software engineering framework.
 
 ## 🚀 Live Production URL
-🔗 **[Interact with the Live Web Application On Render](https://customer-churn-predictor.onrender.com)** *(Note: If the application has been idle, please allow 30–50 seconds for the free-tier server instance to wake up.)*
+🔗 **[Interact with the Live Web Application On Render](https://customer-churn-predictor-irsw.onrender.com)** *(Note: If the application has been idle, please allow 30–50 seconds for the free-tier server instance to wake up.)*
 
 ---
 
